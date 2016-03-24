@@ -21,17 +21,21 @@ type NestedFile struct {
   Children []NestedFile
 }
 
-func getLinkInfo(f os.FileInfo) string {
-  // TODO
-  return ""
+func getLinkInfo(f os.FileInfo, dir string) (bool, string) {
+  if (f.Mode() & os.ModeSymlink != 0) {
+    target, _ := os.Readlink(filepath.Join(dir, f.Name()))
+    return true, target
+  }
+  return false, ""
 }
 
-func toNestedFile(f os.FileInfo, children []NestedFile) NestedFile {
+func toNestedFile(f os.FileInfo, children []NestedFile, dir string) NestedFile {
+  isLink, linkPath := getLinkInfo(f, dir)
   return NestedFile{
     f.ModTime(),
-    false,
+    isLink,
     f.IsDir(),
-    getLinkInfo(f),
+    linkPath,
     f.Size(),
     f.Name(),
     children,
@@ -46,7 +50,7 @@ func dirReader(dir string, recursive bool) []NestedFile {
     if f.IsDir() && recursive {
       children = dirReader(filepath.Join(dir, f.Name()), recursive)
     }
-    output = append(output, toNestedFile(f, children))
+    output = append(output, toNestedFile(f, children, dir))
   }
   return output
 }
