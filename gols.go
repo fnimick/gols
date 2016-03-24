@@ -69,16 +69,17 @@ func textOutputHelper(files []NestedFile, out *os.File, indent string) {
   }
 }
 
-func textOutput(files []NestedFile, out *os.File) {
-  textOutputHelper(files, out, "")
+func textOutput(files []NestedFile, path string, out *os.File) {
+  fmt.Fprintln(out, path)
+  textOutputHelper(files, out, "  ")
 }
 
-func jsonOutput(files []NestedFile, out *os.File) {
+func jsonOutput(files []NestedFile, path string, out *os.File) {
   outJson, _ := json.MarshalIndent(files, "", "  ")
   fmt.Fprintln(out, string(outJson))
 }
 
-func yamlOutput(files []NestedFile, out *os.File) {
+func yamlOutput(files []NestedFile, path string, out *os.File) {
   outYaml, _ := yaml.Marshal(files)
   fmt.Fprintln(out, string(outYaml))
 }
@@ -96,14 +97,11 @@ Options:
   --output <format>   Output format [default: text]
   -h --help           Show program help`
 
-  arguments, err := docopt.Parse(usage, nil, true, "", false)
-  if (err) != nil {
-    panic(err)
-  }
+  arguments, _ := docopt.Parse(usage, nil, true, "", false)
 
   format := arguments["--output"].(string)
 
-  outputFormatters := map[string]func([]NestedFile, *os.File) {
+  outputFormatters := map[string]func([]NestedFile, string, *os.File) {
     "json": jsonOutput,
     "text": textOutput,
     "yaml": yamlOutput,
@@ -118,5 +116,5 @@ Options:
   path := arguments["--path"].(string)
   absPath, _ := filepath.Abs(path)
   recursive := arguments["--recursive"].(bool)
-  formatter(dirReader(absPath, recursive), os.Stdout)
+  formatter(dirReader(absPath, recursive), absPath, os.Stdout)
 }
