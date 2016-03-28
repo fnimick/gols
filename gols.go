@@ -43,14 +43,18 @@ func toNestedFile(f os.FileInfo, children []NestedFile, dir string) NestedFile {
 }
 
 func dirReader(fs afero.Fs, dir string, recursive bool) ([]NestedFile, error) {
-  files, err := afero.ReadDir(fs, dir)
-  if err != nil { return nil, err; }
+	files, err := afero.ReadDir(fs, dir)
+	if err != nil {
+		return nil, err
+	}
 	output := make([]NestedFile, 0, len(files))
 	for _, f := range files {
 		children := []NestedFile{}
 		if f.IsDir() && recursive {
 			children, err = dirReader(fs, filepath.Join(dir, f.Name()), recursive)
-      if err != nil { return nil, err; }
+			if err != nil {
+				return nil, err
+			}
 		}
 		output = append(output, toNestedFile(f, children, dir))
 	}
@@ -98,7 +102,11 @@ Options:
   --output <format>   Output format [default: text]
   -h --help           Show program help`
 
-	arguments, _ := docopt.Parse(usage, nil, true, "", false)
+	arguments, err := docopt.Parse(usage, nil, true, "", false)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 
 	format := arguments["--output"].(string)
 
@@ -115,9 +123,17 @@ Options:
 	}
 
 	path := arguments["--path"].(string)
-	absPath, _ := filepath.Abs(path)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 	recursive := arguments["--recursive"].(bool)
-  AppFs := afero.NewOsFs();
-  dirListing, _ := dirReader(AppFs, absPath, recursive)
+	AppFs := afero.NewOsFs()
+	dirListing, err := dirReader(AppFs, absPath, recursive)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
 	formatter(dirListing, absPath, os.Stdout)
 }
